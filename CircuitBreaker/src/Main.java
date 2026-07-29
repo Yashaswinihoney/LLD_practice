@@ -1,17 +1,44 @@
 // Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
 // then press Enter. You can now see whitespace characters in your code.
 public class Main {
-    public static void main(String[] args) {
-        // Press Opt+Enter with your caret at the highlighted text to see how
-        // IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+    public static void main(String[] args) throws InterruptedException {
+        CircuitBreaker cb = new CircuitBreaker("PaymentService", 3, 2000);
 
-        // Press Ctrl+R or click the green arrow button in the gutter to run the code.
-        for (int i = 1; i <= 5; i++) {
+        Runnable failingCall = () -> {
+            throw new RuntimeException("Downstream timeout");
+        };
 
-            // Press Ctrl+D to start debugging your code. We have set one breakpoint
-            // for you, but you can always add more by pressing Cmd+F8.
-            System.out.println("i = " + i);
+        Runnable successfulCall = () -> {
+            System.out.println("Downstream call succeeded!");
+        };
+
+        System.out.println("--- 1. Simulating Failures ---");
+        for (int i = 0; i < 4; i++) {
+            try {
+                System.out.print("Call " + (i + 1) + ": ");
+                cb.execute(failingCall);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+        }
+
+        System.out.println("\n--- 2. Waiting for Timeout ---");
+        Thread.sleep(2500); // Wait longer than the 2s timeout
+
+        System.out.println("\n--- 3. Simulating Probe (Success) ---");
+        try {
+            // This call will be allowed through in HALF_OPEN
+            cb.execute(successfulCall);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        System.out.println("\n--- 4. Subsequent Calls ---");
+        try {
+            // Circuit should now be CLOSED
+            cb.execute(successfulCall);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
     }
 }
