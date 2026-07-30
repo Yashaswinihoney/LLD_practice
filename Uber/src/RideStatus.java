@@ -1,0 +1,3 @@
+public enum RideStatus {
+    IDLE, REQUESTED, ACCPETED, IN_PROGRESS, COMPLETED, CANCELLED
+}
