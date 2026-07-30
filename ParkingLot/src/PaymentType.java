@@ -1,3 +1,3 @@
 public enum PaymentType {
-    CASH, CARD, CREDIT
+    CASH, CARD, UPI
 }

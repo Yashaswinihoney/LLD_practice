@@ -1,3 +1,3 @@
 public enum SpotType {
-    MOTORCYLE, COMPACT, LARGE
+    MOTORCYCLE, COMPACT, LARGE
 }
