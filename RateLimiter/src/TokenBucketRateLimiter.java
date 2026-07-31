@@ -10,7 +10,7 @@ public class TokenBucketRateLimiter implements RateLimiter{
     public TokenBucketRateLimiter(long maxBucketSize, long refillRate){
         this.maxBucketSize=maxBucketSize;
         this.refillRate=refillRate;
-        currentBucketSize=maxBucketSize;
+        this.currentBucketSize=maxBucketSize;
         this.lastRefillTimestamp=System.currentTimeMillis();
         this.lock=new ReentrantLock();
     }
