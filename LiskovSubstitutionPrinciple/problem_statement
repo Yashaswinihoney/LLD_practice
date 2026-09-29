@@ -1,0 +1,8 @@
+// WHAT WE ARE IMPLEMENTING:
+// An autonomous vehicle simulator ensuring all subclasses behave safely when
+// substituted for parent interfaces.
+//
+// WHERE THE PRINCIPLE FITS IN:
+// The code demonstrates that substituting ElectricCar for Car behaves
+// correctly without breaking core interfaces, whereas violations like ToyCar
+// throwing exceptions break expectations.
