@@ -1,0 +1,8 @@
+// WHAT WE ARE IMPLEMENTING:
+// A smart multifunction printer system where specialized machines implement
+// only what they actually do.
+//
+// WHERE THE PRINCIPLE FITS IN:
+// Split the monolithic Machine interface into highly cohesive interfaces:
+// Printer, Scanner, and Fax. A basic printer implements only Printer,
+// preventing unused methods.

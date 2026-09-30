@@ -1,0 +1,1 @@
+record AnalyticsReport(String data) {}
