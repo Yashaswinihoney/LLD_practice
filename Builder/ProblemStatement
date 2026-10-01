@@ -1,0 +1,7 @@
+WHAT WE ARE IMPLEMENTING:
+// A complex rich-text Document exporter assembling headers, bodies, and
+// footers step-by-step.
+//
+// WHERE THE PATTERN FITS IN:
+// DocumentBuilder acts as the Builder interface, defining individual assembly
+// operations. Document is the Product being built.
