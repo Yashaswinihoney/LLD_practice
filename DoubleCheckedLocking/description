@@ -1,0 +1,1 @@
+This defers creation of the instance until it is actually needed. It uses the volatile keyword and a synchronized block to ensure thread safety without paying the performance penalty of synchronizing every single call to getInstance().
