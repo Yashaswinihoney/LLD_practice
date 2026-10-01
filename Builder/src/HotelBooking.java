@@ -19,7 +19,8 @@ public class HotelBooking {
         this.roomType = roomType;
     }
 
-    //the builder class is static to be able to instantiate the HotelBooking object,
+    //the builder class is static to be able to instantiate the HotelBooking object
+    //A static nested class acts like a regular top-level class that just happens to be packaged inside another class for namespace convenience. This allows you to call the builder directly using the class name
     public static class Builder{
         //required params
         private final String city;
