@@ -1,0 +1,1 @@
+When one object changes, multiple dependent objects need to be notified. You don't want the subject to know about every observer. Observer decouples the subject (publisher) from observers (subscribers).

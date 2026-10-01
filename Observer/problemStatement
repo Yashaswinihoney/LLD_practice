@@ -1,0 +1,7 @@
+// WHAT WE ARE IMPLEMENTING:
+// An online store inventory monitor alerting waiting buyers immediately when
+// an out-of-stock item is replenished.
+//
+// WHERE THE OBSERVER FITS IN:
+// Subject is the Observable (e.g., Product). Observer is the Subscriber
+// interface. Customer classes act as Concrete Observers.
