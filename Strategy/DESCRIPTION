@@ -1,0 +1,8 @@
+// WHAT WE ARE IMPLEMENTING:
+// A check-out cart selecting pricing deductions (flat, percentage, or
+// seasonal discounts) at checkout.
+//
+// WHERE THE STRATEGY FITS IN:
+// DiscountStrategy is the Strategy interface. FlatDiscount and
+// PercentageDiscount represent Concrete Strategies. CheckoutCart is the
+// Context.
