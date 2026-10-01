@@ -1,0 +1,1 @@
+The instance is created at the time of class loading. This is the simplest approach and is inherently thread-safe, but it creates the object even if the client application never uses it, potentially wasting resources.
