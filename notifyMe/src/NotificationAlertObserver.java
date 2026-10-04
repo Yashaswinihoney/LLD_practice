@@ -1,3 +1,4 @@
-public interface NotificationAlertObserver {
-    void update();
+interface NotificationAlertObserver {
+    // Inject the state directly to decouple from the Observable
+    void update(int currentStock);
 }

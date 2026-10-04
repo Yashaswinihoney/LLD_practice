@@ -1,3 +1,2 @@
-public enum CircuitState {
-    CLOSED, OPEN, HALF_OPEN
+package PACKAGE_NAME;public class CircuitState {
 }

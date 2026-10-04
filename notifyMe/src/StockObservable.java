@@ -1,3 +1,4 @@
+//
 public interface StockObservable {
     void add(NotificationAlertObserver observer);
     void remove(NotificationAlertObserver observer);
