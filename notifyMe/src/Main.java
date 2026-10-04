@@ -1,24 +1,20 @@
-//excecution : client
 public class Main {
     public static void main(String[] args) {
-        // Create the Subject
-        StockObservable iphoneStockObservable = new IphoneObservableImpl();
+        // Retrieve the lock-free Singleton Manager[cite: 1]
+        NotificationManager manager = NotificationManager.getInstance();
 
-        // Create Observers
-//        NotificationAlertObserver obs1 = new EmailAlertObserverImpl("xyz@gmail.com", iphoneStockObservable);
-//        NotificationAlertObserver obs2 = new EmailAlertObserverImpl("abc@gmail.com", iphoneStockObservable);
-        NotificationAlertObserver obs3 = new MobileAlertObserverImpl("shrayansh_user", iphoneStockObservable);
+        // System Initialization
+        manager.registerProduct("IPHONE_15", new IphoneObservableImpl());
+        manager.registerProduct("MACBOOK_PRO", new IphoneObservableImpl());
 
-        // Register Observers
-//        iphoneStockObservable.add(obs1);
-//        iphoneStockObservable.add(obs2);
-        iphoneStockObservable.add(obs3);
+        // Users subscribe via the Manager
+        manager.subscribeToProduct("IPHONE_15", new MobileAlertObserverImpl("alice_mobile"));
+        manager.subscribeToProduct("IPHONE_15", new MobileAlertObserverImpl("bob_mobile"));
 
-        // Trigger notifications
-        System.out.println("--- Setting stock to 10 ---");
-        iphoneStockObservable.setStockCount(10);
-
-        System.out.println("\n--- Adding 50 more stock (No notification expected) ---");
-        iphoneStockObservable.setStockCount(50);
+        // A separate worker thread processes an incoming shipment
+        new Thread(() -> {
+            System.out.println("Warehouse thread processing iPhone shipment...");
+            manager.receiveStockShipment("IPHONE_15", 50);
+        }).start();
     }
 }
