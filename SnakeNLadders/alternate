@@ -1,0 +1,249 @@
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
+
+// ==========================================
+// 1. STATE PATTERN: Player Modifiers
+// ==========================================
+interface PlayerState {
+    boolean canTakeTurn(Player p);
+    boolean blocksSnake(Player p);
+}
+
+class NormalState implements PlayerState {
+    @Override public boolean canTakeTurn(Player p) { return true; }
+    @Override public boolean blocksSnake(Player p) { return false; }
+}
+
+class SkipTurnState implements PlayerState {
+    @Override
+    public boolean canTakeTurn(Player p) {
+        System.out.println("⏳ " + p.getName() + " skips this turn due to a trap.");
+        p.setState(new NormalState()); // Automatically transition back to normal
+        return false;
+    }
+    @Override public boolean blocksSnake(Player p) { return false; }
+}
+
+class ShieldState implements PlayerState {
+    @Override public boolean canTakeTurn(Player p) { return true; }
+    @Override
+    public boolean blocksSnake(Player p) {
+        System.out.println("🛡️ " + p.getName() + "'s Shield blocked the snake bite!");
+        p.setState(new NormalState()); // Shield is consumed
+        return true;
+    }
+}
+
+// ==========================================
+// 2. DOMAIN ENTITIES
+// ==========================================
+class Player {
+    private final String name;
+    private int position = 0;
+    private PlayerState state = new NormalState();
+
+    public Player(String name) { this.name = name; }
+    public String getName() { return name; }
+    public int getPosition() { return position; }
+    public void setPosition(int position) { this.position = position; }
+
+    public PlayerState getState() { return state; }
+    public void setState(PlayerState state) { this.state = state; }
+}
+
+class Board {
+    private final int size;
+    private final Map<Integer, Integer> specialCells;
+
+    public Board(int size, Map<Integer, Integer> specialCells) {
+        this.size = size;
+        this.specialCells = new HashMap<>(specialCells); // Defensive copy[cite: 3]
+    }
+
+    public int getSize() { return size; }
+
+    public int getDestination(int position, Player p) {
+        int destination = specialCells.getOrDefault(position, position);
+        if (destination < position) {
+            if (p.getState().blocksSnake(p)) {
+                return position; // State blocked the drop
+            }
+            System.out.println("🐍 " + p.getName() + " swallowed by snake at " + position);
+        } else if (destination > position) {
+            System.out.println("🪜 " + p.getName() + " climbed ladder at " + position);
+        }
+        return destination;
+    }
+}
+
+// ==========================================
+// 3. STRATEGY PATTERN: Dice Mechanics
+// ==========================================
+class RollResult {
+    public final int total;
+    public final boolean grantsExtraTurn;
+
+    public RollResult(int total, boolean grantsExtraTurn) {
+        this.total = total;
+        this.grantsExtraTurn = grantsExtraTurn;
+    }
+}
+
+interface DiceStrategy {
+    RollResult roll();
+}
+
+class DualDiceStrategy implements DiceStrategy {
+    private final Random rand = new Random();
+
+    @Override
+    public RollResult roll() {
+        int die1 = rand.nextInt(6) + 1;
+        int die2 = rand.nextInt(6) + 1;
+        int total = die1 + die2;
+        boolean isDouble = (die1 == die2);
+        return new RollResult(total, isDouble);
+    }
+}
+
+// ==========================================
+// 4. CONCURRENCY: Thread-Safe Game Engine
+// ==========================================
+class GameManager {
+    private final Board board;
+    private final DiceStrategy dice;
+    private final Queue<Player> turnQueue;
+
+    private volatile boolean gameOver = false;
+
+    // Dedicated lock object minimizes scope and prevents external interference[cite: 5, 6]
+    private final ReentrantLock lock = new ReentrantLock(true);
+    private final Condition turnCondition = lock.newCondition();
+    private Player currentPlayer;
+
+    public GameManager(Board board, DiceStrategy dice, List<Player> players) {
+        this.board = board;
+        this.dice = dice;
+        this.turnQueue = new LinkedList<>(players);
+        this.currentPlayer = turnQueue.peek();
+    }
+
+    public void playTurn(Player executingPlayer) {
+        while (!gameOver) {
+            lock.lock();
+            try {
+                // Sleep if it's not this thread's turn[cite: 6]
+                while (currentPlayer != executingPlayer && !gameOver) {
+                    turnCondition.await();
+                }
+
+                if (gameOver) break;
+
+                executeMove(executingPlayer);
+                turnCondition.signalAll(); // Wake waiting threads[cite: 6]
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } finally {
+                lock.unlock(); // Always unlock in finally to prevent deadlocks[cite: 6]
+            }
+        }
+    }
+
+    private void executeMove(Player p) {
+        // State conditionally blocks the turn
+        if (!p.getState().canTakeTurn(p)) {
+            rotateQueue();
+            return;
+        }
+
+        RollResult roll = dice.roll();
+        System.out.println("[Game] " + p.getName() + " rolled " + roll.total + " (Current: " + p.getPosition() + ")");
+
+        int nextPos = p.getPosition() + roll.total;
+
+        if (nextPos <= board.getSize()) {
+            int finalPos = board.getDestination(nextPos, p);
+            p.setPosition(finalPos);
+            System.out.println("[Game] " + p.getName() + " moved to " + finalPos);
+
+            if (finalPos == board.getSize()) {
+                gameOver = true;
+                System.out.println("🎉 [Victory] " + p.getName() + " wins!");
+                return;
+            }
+        } else {
+            System.out.println("[Game] " + p.getName() + " overshoot! Skipped.");
+        }
+
+        // Handle extra turns from Strategy Pattern
+        if (!roll.grantsExtraTurn) {
+            rotateQueue();
+        } else {
+            System.out.println("🎲 " + p.getName() + " rolled doubles! Extra turn granted.");
+        }
+    }
+
+    private void rotateQueue() {
+        turnQueue.add(turnQueue.poll());
+        currentPlayer = turnQueue.peek();
+    }
+}
+
+// ==========================================
+// 5. CREATIONAL PATTERN: System Scale Lobby
+// ==========================================
+class GameLobbyManager {
+    // High-performance bucket-level locking[cite: 5]
+    private final ConcurrentHashMap<String, GameManager> activeGames = new ConcurrentHashMap<>();
+
+    private GameLobbyManager() {}
+
+    // Lock-free Bill Pugh Singleton implementation[cite: 5, 11]
+    private static class InstanceHolder {
+        private static final GameLobbyManager INSTANCE = new GameLobbyManager();
+    }
+
+    public static GameLobbyManager getInstance() {
+        return InstanceHolder.INSTANCE;
+    }
+
+    public GameManager getOrCreateLobby(String gameId, Board board, DiceStrategy dice, List<Player> players) {
+        return activeGames.computeIfAbsent(gameId, id -> new GameManager(board, dice, players));
+    }
+}
+
+// ==========================================
+// 6. EXECUTION
+// ==========================================
+public class Main {
+    public static void main(String[] args) {
+        Map<Integer, Integer> specials = new HashMap<>();
+        specials.put(14, 4);  // Snake
+        specials.put(37, 17); // Snake
+        specials.put(3, 38);  // Ladder
+        specials.put(40, 59); // Ladder
+
+        Board board = new Board(100, specials);
+        DiceStrategy dice = new DualDiceStrategy();
+
+        Player p1 = new Player("Alice");
+        Player p2 = new Player("Bob");
+
+        // Grant Alice a shield for demonstration
+        p1.setState(new ShieldState());
+
+        List<Player> players = Arrays.asList(p1, p2);
+
+        // Fetch thread-safe lobby[cite: 5]
+        GameLobbyManager lobby = GameLobbyManager.getInstance();
+        GameManager game = lobby.getOrCreateLobby("LOBBY_1", board, dice, players);
+
+        System.out.println("--- Advanced Snake & Ladder Starting ---");
+
+        new Thread(() -> game.playTurn(p1)).start();
+        new Thread(() -> game.playTurn(p2)).start();
+    }
+}
