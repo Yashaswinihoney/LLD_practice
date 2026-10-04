@@ -3,7 +3,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class TokenBucketRateLimiter implements RateLimiter{
     private final long maxBucketSize;
     private final long refillRate;
-
     private long currentBucketSize;
     private long lastRefillTimestamp;
     private  final ReentrantLock lock;

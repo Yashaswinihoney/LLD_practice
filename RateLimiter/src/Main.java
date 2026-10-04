@@ -3,13 +3,16 @@
 public class Main {
     public static void main(String[] args) throws InterruptedException {
 
-        RateLimiterManager manager=new RateLimiterManager(5,2);
-        String userA="userA";
+        // CREATION & UTILIZATION:
+        // The JVM handles the lock-free initialization during this first call.
+        RateLimiterManager manager = RateLimiterManager.getInstance();
 
-        System.out.println("--Simulating Traffic Burst --");
+        String userA = "userA";
 
-        for(int i=1;i<=7;i++){
-            boolean allowed=manager.isAllowed(userA);
+        System.out.println("-- Simulating Traffic Burst --");
+
+        for(int i = 1; i <= 7; i++) {
+            boolean allowed = manager.isAllowed(userA);
             System.out.println("Request " + i + " -> " + (allowed ? "ALLOWED" : "DENIED"));
         }
 
