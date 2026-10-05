@@ -16,4 +16,8 @@ public class Seat {
     public double getPrice(){
         return price;
     }
+
+    public SeatCategory getCategory() {
+        return category;
+    }
 }
