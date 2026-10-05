@@ -1,12 +1,14 @@
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+// Stateless service class injected with its repository dependency
+public class PaymentExecutionService {
+    private final TransactionRepository repository;
 
-class PaymentProcessor {
-    private final Map<String, Transaction> transactionRegistry = new ConcurrentHashMap<>();
+    public PaymentExecutionService(TransactionRepository repository) {
+        this.repository = repository;
+    }
 
     public Transaction processPayment(String idempotencyKey, double amount, PaymentStrategy strategy) {
         Transaction newTransaction = new Transaction(idempotencyKey, amount);
-        Transaction existing = transactionRegistry.putIfAbsent(idempotencyKey, newTransaction);
+        Transaction existing = repository.putIfAbsent(idempotencyKey, newTransaction);
 
         if (existing != null) {
             throw new DuplicateTransactionException("Transaction " + idempotencyKey + " is already processed/pending.");
@@ -16,7 +18,6 @@ class PaymentProcessor {
             boolean success = strategy.pay(newTransaction);
             if (success) {
                 newTransaction.setStatus(PaymentStatus.SUCCESS);
-                // NEW: Record the exact strategy used for the payment
                 newTransaction.setPaymentMethod(strategy.getMethodName());
                 System.out.println("SUCCESS: " + strategy.getMethodName() + " payment completed. TxID: " + idempotencyKey);
             } else {
@@ -30,7 +31,7 @@ class PaymentProcessor {
     }
 
     public boolean processRefund(String transactionId, PaymentStrategy strategy) {
-        Transaction tx = transactionRegistry.get(transactionId);
+        Transaction tx = repository.getTransaction(transactionId);
 
         if (tx == null) {
             throw new IllegalArgumentException("Transaction not found for refund.");
@@ -39,7 +40,6 @@ class PaymentProcessor {
             throw new IllegalStateException("Can only refund SUCCESSFUL transactions.");
         }
 
-        // NEW REQUIREMENT 1: Ensure refund method matches initial payment method
         if (!tx.getPaymentMethod().equals(strategy.getMethodName())) {
             System.err.println("REFUND REJECTED: Cross-method refunds are not permitted. " +
                     "Original: " + tx.getPaymentMethod() + ", Requested: " + strategy.getMethodName());

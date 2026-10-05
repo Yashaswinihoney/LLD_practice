@@ -7,13 +7,13 @@ public class UPIPaymentStrategy implements PaymentStrategy{
     @Override
     public boolean pay(Transaction transaction) {
         System.out.println("Routing upi payment of ammount "+ transaction.getAmount()+" to upi id "+ upiId);
-        return false;
+        return true;
     }
 
     @Override
     public boolean refund(Transaction transaction) {
         System.out.println("Inittiating refund of amount "+transaction.getAmount()+" to upiId "+ upiId);
-        return false;
+        return true;
     }
 
     @Override

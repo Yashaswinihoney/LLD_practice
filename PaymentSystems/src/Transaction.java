@@ -5,8 +5,8 @@
 class Transaction {
     private final String transactionId;
     private final double amount;
-    private PaymentStatus status;
-    private String paymentMethod; // NEW: Tracks the original payment method
+    private volatile PaymentStatus status;
+    private volatile String paymentMethod; // NEW: Tracks the original payment method
 
     public Transaction(String transactionId, double amount) {
         this.transactionId = transactionId;
