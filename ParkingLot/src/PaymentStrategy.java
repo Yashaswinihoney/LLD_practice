@@ -1,3 +1,3 @@
 public interface PaymentStrategy {
-    boolean process(TransactionRecord transaction);
+    boolean process(double amount);
 }

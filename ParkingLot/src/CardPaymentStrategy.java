@@ -1,7 +1,7 @@
 public class CardPaymentStrategy implements PaymentStrategy{
     @Override
-    public boolean process(TransactionRecord transaction) {
-        System.out.println("CARD Connecting to Bank.. Processed for "+ transaction.getAmount()+" for ticket "+transaction.getTicketId()+" for TXN "+ transaction.getTransactionId());
+    public boolean process(double amount) {
+        System.out.println("Processing payment of $"+amount);
         return true;
     }
 }

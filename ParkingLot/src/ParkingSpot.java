@@ -1,39 +1,45 @@
 public class ParkingSpot {
-    private final String id;
-    private final SpotType type;
-    private Vehicle currentVehicle;
-    private boolean isFree=true;
+    private final String spotId;
+    private final SpotType spotType;
+    private Vehicle vehicle;
+    private volatile boolean isOccupied;
 
     public ParkingSpot(String id, SpotType type){
-        this.id=id;
-        this.type=type;
+        this.spotId=id;
+        this.spotType=type;
+        this.isOccupied=false;
     }
 
-    public synchronized boolean isAvailable(){
-        return isFree;
+    public boolean canFit(VehicleType vehicleType){
+        if (isOccupied) return false;
+
+        switch (vehicleType){
+            case MOTORCYCLE -> {
+                return spotType==SpotType.MOTORCYCLE;
+            }
+            case CAR -> {
+                return spotType==SpotType.COMPACT;
+            }
+            case TRUCK -> {
+                return spotType==SpotType.LARGE;
+            }
+            default -> {
+                return false;
+            }
+        }
     }
 
-    public synchronized boolean reserve(Vehicle vehicle){
-        if (!isFree) return false;
-        this.isFree=false;
-        this.currentVehicle=vehicle;
-        return true;
+    public void park(Vehicle v){
+        this.vehicle=v;
+        this.isOccupied=true;
     }
 
-    public synchronized void release(){
-        this.isFree=true;
-        this.currentVehicle=null;
+    public void vacate(){
+        this.vehicle=null;
+        this.isOccupied=false;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public SpotType getType() {
-        return type;
-    }
-
-    public Vehicle getCurrentVehicle() {
-        return currentVehicle;
+    public String getSpotId(){
+        return spotId;
     }
 }

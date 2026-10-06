@@ -1,4 +1,4 @@
-abstract class Vehicle {
+class Vehicle {
     private final String licensePlate;
     private final VehicleType type;
 

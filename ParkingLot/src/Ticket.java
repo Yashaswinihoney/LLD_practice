@@ -1,3 +1,4 @@
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Ticket{
@@ -5,15 +6,12 @@ public class Ticket{
     private final String ticketId;
     private final Vehicle vehicle;
     private final ParkingSpot spot;
-    private final long entryTime;
-    private long exitTime;
-    private double fee;
-    private boolean isPaid;
+    private final LocalDateTime entryTime;
 
     public Ticket(Vehicle vehicle, ParkingSpot spot){
         this.vehicle=vehicle;
         this.spot=spot;
-        this.entryTime=System.currentTimeMillis();
+        this.entryTime=LocalDateTime.now();
         this.ticketId="TKT-"+counter.getAndIncrement();
     }
 
@@ -28,31 +26,8 @@ public class Ticket{
         return spot;
     }
 
-    public long getEntryTime() {
+    public LocalDateTime getEntryTime() {
         return entryTime;
     }
 
-    public void setExitTime(long exitTime) {
-        this.exitTime = exitTime;
-    }
-
-    public long getExitTime() {
-        return exitTime;
-    }
-
-    public double getFee() {
-        return fee;
-    }
-
-    public void setFee(double fee) {
-        this.fee = fee;
-    }
-
-    public boolean isPaid() {
-        return isPaid;
-    }
-
-    public void pay() {
-        isPaid = true;
-    }
 }

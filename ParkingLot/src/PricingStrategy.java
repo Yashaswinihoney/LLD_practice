@@ -1,3 +1,5 @@
+import java.time.LocalDateTime;
+
 public interface PricingStrategy {
-    double calculateFee(long duration);
+    double calculateFee(LocalDateTime entryTime, LocalDateTime exitTime);
 }
