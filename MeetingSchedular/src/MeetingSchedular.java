@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 //BILL PUGH SINGLETON
@@ -15,15 +16,15 @@ public class MeetingSchedular {
     }
 
     //no need for locks coz we are using concurrenthashmap
-    public void addRoom(String roomId, int cap){
-        rooms.putIfAbsent(roomId,new MeetingRoom(roomId,cap));
+    public void addRoom(String roomId, int capacity, Set<Facility> facilities) {
+        rooms.putIfAbsent(roomId, new MeetingRoom(roomId, capacity, facilities));
     }
 
     //filters all rooms matching the capacity constrain available during the given time slot
-    public List<MeetingRoom> searchAvailableRooms(long start, long end, int minCap){
+    public List<MeetingRoom> searchAvailableRooms(long start, long end, int minCap, Set<Facility> requiredFacilities){
         List<MeetingRoom> res=new ArrayList<>();
         for(var room: rooms.values()){
-            if (room.getCapacity()>=minCap&& room.isAvailable(start,end)){
+            if (room.getCapacity()>=minCap&& room.isAvailable(start,end)&& room.getFacilities().containsAll(requiredFacilities)){
                 res.add(room);
             }
         }

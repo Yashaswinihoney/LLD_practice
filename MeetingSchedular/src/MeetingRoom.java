@@ -1,6 +1,4 @@
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -8,12 +6,14 @@ public class MeetingRoom {
     private final String roomId;
     private final int capacity;
     private final List<Meeting> calendar;
+    private final Set<Facility> facilities;
     //private lock for every room
     private final ReentrantLock roomLock=new ReentrantLock();
-    public MeetingRoom(String roomId, int capacity) {
+    public MeetingRoom(String roomId, int capacity, Set<Facility> facilities) {
         this.roomId = roomId;
         this.capacity = capacity;
         this.calendar = new CopyOnWriteArrayList<>();
+        this.facilities = facilities.isEmpty() ? EnumSet.noneOf(Facility.class) : EnumSet.copyOf(facilities);
     }
 
     public String getRoomId(){
@@ -23,7 +23,9 @@ public class MeetingRoom {
     public int getCapacity() {
         return capacity;
     }
-
+    public Set<Facility> getFacilities(){
+        return Collections.unmodifiableSet(facilities);
+    }
     //read only to check if room is available
     public boolean isAvailable(long start, long end){
         roomLock.lock();

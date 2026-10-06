@@ -1,0 +1,6 @@
+enum Facility {
+    PROJECTOR,
+    SCREEN,
+    WHITEBOARD,
+    VIDEO_CONFERENCING
+}
