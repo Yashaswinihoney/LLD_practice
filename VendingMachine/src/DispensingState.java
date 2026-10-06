@@ -1,28 +1,28 @@
-public class DispensingState implements State{
+// DispensingState.java
+public class DispensingState implements VendingState {
+    @Override
     public void insertCoin(VendingMachine vm, Coin coin) {
-        throw new IllegalStateException("Wait, dispensing in progress...");
+        System.out.println("[" + vm.getMachineId() + "] WAIT: Dispensing in progress...");
     }
 
+    @Override
     public void selectProduct(VendingMachine vm, String code) {
-        throw new IllegalStateException("Already dispensing.");
+        System.out.println("[" + vm.getMachineId() + "] WAIT: Already dispensing an item.");
     }
 
+    @Override
     public void dispense(VendingMachine vm, String code) {
-        Product p = vm.getInventory().getProduct(code);
-        vm.getInventory().reduceStock(code);
+        Product p = vm.getProduct(code);
+        vm.reduceStock(code);
 
-        int change = vm.getBalance() - p.price;
-
-        System.out.println(">>> DISPENSING: " + p.name + " <<<");
-        if (change > 0) {
-            System.out.println("Change returned: " + change);
-        }
+        System.out.println("[" + vm.getMachineId() + "] >>> DISPENSING: " + p.getName() + " <<<");
 
         vm.resetBalance();
-        vm.setState(new IdleState());
+        vm.setState(vm.getIdleState());
     }
 
-    public void cancelRequest(VendingMachine vm) {
-        throw new IllegalStateException("Cannot cancel, item already dispensing!");
+    @Override
+    public void cancelAndRefund(VendingMachine vm) {
+        System.out.println("[" + vm.getMachineId() + "] REJECTED: Cannot cancel, item is already dropping!");
     }
 }

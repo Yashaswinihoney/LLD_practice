@@ -1,23 +1,25 @@
-public class IdleState implements State{
-
+// IdleState.java
+public class IdleState implements VendingState {
     @Override
     public void insertCoin(VendingMachine vm, Coin coin) {
         vm.addBalance(coin.getValue());
-        System.out.println("Coin accepted "+coin.name()+". Total balance "+vm.getBalance());
+        vm.ingestPhysicalCoin(coin);
+        System.out.println("[" + vm.getMachineId() + "] Coin Accepted: " + coin.name() + " | Balance: " + vm.getBalance());
+        vm.setState(vm.getHasMoneyState());
     }
 
     @Override
-    public void selectProduct(VendingMachine v, String code) {
-        throw new IllegalStateException("Insert Money first");
+    public void selectProduct(VendingMachine vm, String code) {
+        System.out.println("[" + vm.getMachineId() + "] REJECTED: Please insert coins first.");
     }
 
     @Override
     public void dispense(VendingMachine vm, String code) {
-        throw new IllegalStateException("Payment required");
+        System.out.println("[" + vm.getMachineId() + "] REJECTED: Payment required.");
     }
 
     @Override
-    public void cancelRequest(VendingMachine vm) {
-        System.out.println("Nothing to refund");
+    public void cancelAndRefund(VendingMachine vm) {
+        System.out.println("[" + vm.getMachineId() + "] REJECTED: No active transaction to cancel.");
     }
 }

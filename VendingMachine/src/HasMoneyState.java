@@ -1,35 +1,52 @@
-public class HasMoneyState implements State{
+// HasMoneyState.java
+public class HasMoneyState implements VendingState {
     @Override
     public void insertCoin(VendingMachine vm, Coin coin) {
         vm.addBalance(coin.getValue());
-        System.out.println("Coin added. New Total: "+ vm.getBalance());
+        vm.ingestPhysicalCoin(coin);
+        System.out.println("[" + vm.getMachineId() + "] Coin Accepted: " + coin.name() + " | Balance: " + vm.getBalance());
     }
 
     @Override
     public void selectProduct(VendingMachine vm, String code) {
-        Product p=vm.getInventory().getProduct(code);
+        Product p = vm.getProduct(code);
+        int stock = vm.getStock(code);
 
-        if (p == null || !vm.getInventory().isAvailable(code)) {
-            throw new IllegalArgumentException("Product unavailable.");
+        if (p == null || stock <= 0) {
+            System.out.println("[" + vm.getMachineId() + "] FAILED: Product unavailable or out of stock.");
+            return;
         }
-        if (vm.getBalance() < p.price) {
-            throw new InsufficientFundsException("Insufficient funds. Price: " + p.price);
+        if (vm.getBalance() < p.getPrice()) {
+            System.out.println("[" + vm.getMachineId() + "] FAILED: Insufficient funds. Price is " + p.getPrice());
+            return;
         }
 
-        vm.setState(new DispensingState());
-        vm.triggerDispense(code);
-    }
+        int changeRequired = vm.getBalance() - p.getPrice();
 
-    @Override
-    public void cancelRequest(VendingMachine vm) {
-        System.out.println("Refunding " + vm.getBalance());
-        vm.resetBalance();
-        vm.setState(new IdleState());
+        // Verify exact physical change is possible before committing
+        if (changeRequired > 0 && !vm.dispenseChange(changeRequired)) {
+            System.out.println("[" + vm.getMachineId() + "] ERROR: Insufficient physical coins for change. Refunding.");
+            cancelAndRefund(vm);
+            return;
+        }
+
+        // Lock into dispensing phase
+        vm.setState(vm.getDispensingState());
+
+        // Immediately trigger the physical dispense step within the same thread lock boundary
+        vm.getCurrentState().dispense(vm, code);
     }
 
     @Override
     public void dispense(VendingMachine vm, String code) {
-        throw new IllegalStateException("Select a product first.");
+        System.out.println("[" + vm.getMachineId() + "] REJECTED: Select a product first.");
     }
 
+    @Override
+    public void cancelAndRefund(VendingMachine vm) {
+        System.out.println("[" + vm.getMachineId() + "] Canceling... Refunding: " + vm.getBalance());
+        vm.dispenseChange(vm.getBalance()); // Eject coins
+        vm.resetBalance();
+        vm.setState(vm.getIdleState());
+    }
 }
