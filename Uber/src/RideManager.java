@@ -4,7 +4,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class RideManager {
-    private static volatile RideManager instance;
 
     //thread safe registry for all rides
     private final Map<String,Ride> activeRides= new ConcurrentHashMap<>();
@@ -12,68 +11,81 @@ public class RideManager {
     //idempotency gaurd, maps ridersId to ride id to prevent double booking
     private final Map<String, String> activeRiderRequests=new ConcurrentHashMap<>();
 
-    //Threadsafe queue strictly for drivers currently looking for rides
-    private final ConcurrentLinkedQueue<Driver> availableDrivers=new ConcurrentLinkedQueue<>();
-
+    private final Map<String,ConcurrentLinkedQueue<Driver>> gridToDrivers=new ConcurrentHashMap<>();
     private RideManager(){}
+
+    private static class InstanceHolder{
+        private static final RideManager INSTANCE=new RideManager();
+    }
 
     //double checked locked singleton
     public static RideManager getInstance(){
-        if (instance==null){
-            synchronized (RideManager.class){
-                if (instance==null) instance=new RideManager();
-             }
-        }
-        return instance;
+        return InstanceHolder.INSTANCE;
     }
 
-    public  void addAvailableDriver(Driver driver){
-        availableDrivers.add(driver);
-        System.out.println("Driver "+ driver.getId()+" is now online");
+    public void addAvailableDriver(Driver driver) {
+        String gridId = driver.getLocation().getGridId();
+        gridToDrivers.putIfAbsent(gridId, new ConcurrentLinkedQueue<>());
+        gridToDrivers.get(gridId).add(driver);
+        System.out.println("Driver " + driver.getId() + " online in Grid " + gridId);
     }
 
-    public Ride requestRide(String riderId, Location src, Location dest){
-
-        //idempotency check
-        String placeholderRide="PENDING_"+ UUID.randomUUID().toString();
-        String existingRide=activeRiderRequests.putIfAbsent(riderId,placeholderRide);
-
-        if(existingRide!=null){
-            System.err.println("Idempotency gaurd triggered, Rider "+ riderId+" already has an active request");
+    public Ride requestRide(String riderId, Location src, Location dest, TripObserver riderApp) {
+        // 2. Idempotency Guard
+        if (activeRiderRequests.putIfAbsent(riderId, "PENDING") != null) {
+            System.err.println("Idempotency guard triggered: " + riderId + " already has an active request.");
             return null;
         }
 
-        System.out.println("Rider "+riderId+" searching for drivers");
+        String gridId = src.getGridId();
+        ConcurrentLinkedQueue<Driver> localDrivers = gridToDrivers.get(gridId);
 
-        //fetching next available driver
-        Driver matchedDriver=availableDrivers.poll();
+        System.out.println("Rider " + riderId + " searching Grid " + gridId + "...");
 
-        while (matchedDriver!=null){
-            if (matchedDriver.tryBook()){
-                String finalRideId="RIDE_"+UUID.randomUUID().toString().substring(0,5);
+        if (localDrivers != null) {
+            Driver matchedDriver = localDrivers.poll();
+            while (matchedDriver != null) {
 
-                //constructing a fully auditable ride id
-                Ride newRide=new Ride(finalRideId, riderId, src, dest);
+                // 3. Atomic CAS Booking
+                if (matchedDriver.tryBook()) {
+                    String rideId = "RIDE_" + UUID.randomUUID().toString().substring(0, 5);
 
-                if (newRide.acceptRide(matchedDriver.getId())){
-                    activeRides.put(finalRideId,newRide);
+                    // Inject pricing strategy (Mocking surge if demand is high)
+                    PricingStrategy pricing = localDrivers.isEmpty() ? new SurgePricingStrategy(2.5) : new StandardPricingStrategy();
 
-                    //update idempotency map to track the new ride
-                    activeRiderRequests.put(riderId,finalRideId);
+                    Ride newRide = new Ride(rideId, riderId, src, dest, pricing);
+                    newRide.addObserver(riderApp); // Register rider phone
+                    newRide.addObserver(new MobileAppClient("Driver_" + matchedDriver.getId())); // Register driver phone
 
-                    System.out.println("Rider "+ riderId+" matched with driver "+ matchedDriver.getId()+ " for "+ finalRideId);
+                    if (newRide.acceptRide(matchedDriver.getId())) {
+                        activeRides.put(rideId, newRide);
+                        activeRiderRequests.put(riderId, rideId);
+                        return newRide;
+                    } else {
+                        // Rollback if ride was cancelled instantly
+                        matchedDriver.release();
+                        localDrivers.add(matchedDriver);
+                    }
                 }
-                else{
-                    matchedDriver.release();
-                    availableDrivers.add(matchedDriver);
-                }
+                matchedDriver = localDrivers.poll(); // Keep searching if driver was CAS-locked by another thread
             }
-            matchedDriver=availableDrivers.poll();
         }
 
-        System.err.println("No drivers available for the Rider "+riderId);
-        //clear the idempotency lock so they can try again later
-        activeRiderRequests.remove(riderId);
+        System.err.println("No drivers available for Rider " + riderId + " in this grid.");
+        activeRiderRequests.remove(riderId); // Clear idempotency lock
         return null;
+    }
+
+    public void finishRide(String rideId, Driver driver) {
+        Ride ride = activeRides.get(rideId);
+        if (ride != null) {
+            ride.completeTrip();
+            activeRides.remove(rideId);
+            activeRiderRequests.remove(ride.getRiderId());
+
+            // Release driver back into the geospatial pool
+            driver.release();
+            addAvailableDriver(driver);
+        }
     }
 }

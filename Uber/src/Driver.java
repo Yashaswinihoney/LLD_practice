@@ -1,33 +1,34 @@
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Driver {
     private final String id;
-    private final ReentrantLock driverLock= new ReentrantLock();
+    private Location currentLocation;
+    private final AtomicBoolean isAvailable=new AtomicBoolean(true);
 
-    public Driver(String id){
+    public Driver(String id, Location startLocation){
         this.id=id;
+        this.currentLocation=startLocation;
     }
 
     public String getId(){
         return id;
     }
 
+    public Location getLocation() {
+        return currentLocation;
+    }
+
+    public void setLocation(Location currentLocation) {
+        this.currentLocation = currentLocation;
+    }
+
     public boolean tryBook(){
-        try {
-                //try to lock the driver for 50 milliseconds, give up if the driver is already booked by another thread
-                if (driverLock.tryLock(50, TimeUnit.MILLISECONDS)){
-                    return true;
-                }
-            } catch(InterruptedException e){
-                Thread.currentThread().interrupt();
-            }
-        return false;
+        return isAvailable.compareAndSet(true,false);
     }
 
     public void release() {
-        if (driverLock.isHeldByCurrentThread()) {
-            driverLock.unlock();
-        }
+        isAvailable.set(true);
     }
 }
