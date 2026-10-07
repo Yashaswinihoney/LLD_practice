@@ -31,6 +31,6 @@ public class HasCardState implements ATMState{
     public void ejectCard() {
         System.out.println("Card ejected");
         atm.setCurrentAccount(null);
-        atm.setState(new IdleState(atm));
+        atm.setState(atm.getIdleState());
     }
 }

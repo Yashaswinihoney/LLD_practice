@@ -16,16 +16,16 @@ public class AutheticatedState implements ATMState{
     @Override
     public void withdrawCash(long amount) {
 
-        //pre check atm vault to prevent needing complex rollbacks
+        //pre-check atm vault to prevent needing complex rollbacks
         if(!atm.hasSufficientPhyiscalCash(amount)){
-            System.out.println("ATM ERROR: Insufficient funds");
+            System.err.println("ATM ERROR: Insufficient funds");
             ejectCard();
             return;
         }
 
         Account acc=atm.getCurrentAccount();
 
-        //safely withdraw from bank accvount
+        //safely withdraw from bank account
         if(acc.withdraw(amount)){
             //deduct from vault
             atm.deductVaultCash(amount);

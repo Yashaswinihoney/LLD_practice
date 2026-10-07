@@ -13,6 +13,10 @@ public class Account {
         this.balance=initialBalance;
     }
 
+    public String getAccountId() {
+        return accountId;
+    }
+
     public boolean authenticate(int pin){
         return this.correctPin==pin;
     }

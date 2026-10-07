@@ -7,7 +7,7 @@ public class IdleState implements ATMState{
     public void insertCard(Account account) {
         System.out.println("Card Inserted Securely ");
         atm.setCurrentAccount(account);
-        atm.setState(new HasCardState(atm));
+        atm.setState(atm.getHasCardState()); //transition to the next state
     }
 
     @Override

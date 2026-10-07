@@ -1,29 +1,31 @@
-// Press Shift twice to open the Search Everywhere dialog and type `show whitespaces`,
-// then press Enter. You can now see whitespace characters in your code.
 public class Main {
     public static void main(String[] args) {
-        // Initialize ATM with $500.00 (50000 cents)
-        ATMMachine atm = new ATMMachine(50000);
+        System.out.println("=== THREAD-SAFE ATM SIMULATION ===");
 
-        // Initialize User Account with $200.00 (20000 cents)
-        Account aliceAccount = new Account("ACC_123", 1234, 20000);
+        // 1. Initialize Singleton Manager & Machine
+        ATMManager manager = ATMManager.getInstance();
+        manager.registerATM("LOBBY-01", 5000); // ATM has $5000 physical cash
+        ATMMachine atm = manager.getATM("LOBBY-01");
 
-        System.out.println("--- Scenario 1: Standard Withdrawal ---");
-        atm.insertCard(aliceAccount);
-        atm.enterPin(1234);
-        atm.withdraw(5000); // Withdraw $50.00
+        // 2. Create Bank Accounts
+        Account aliceAccount = new Account("ACC-100", 1234, 1000); // Alice has $1000
 
-        System.out.println("\n--- Scenario 2: Insufficient Bank Funds ---");
-        atm.insertCard(aliceAccount);
-        atm.enterPin(1234);
-        atm.withdraw(30000); // Attempt to withdraw $300.00 (Account only has $150 left)
+        // 3. Concurrent Simulation (Alice and her husband trying to withdraw simultaneously)
+        // Thread 1: Standard ATM Terminal usage
+        Thread terminalThread = new Thread(() -> {
+            System.out.println("[Terminal Thread] Starting transaction...");
+            atm.insertCard(aliceAccount);
+            atm.enterPin(1234);
+            atm.withdraw(800); // Attempt to withdraw $800
+        });
 
-        System.out.println("\n--- Scenario 3: ATM Out of Cash ---");
-        // Initialize a massive account: $10,000.00
-        Account bobAccount = new Account("ACC_999", 9999, 1000000);
-        atm.insertCard(bobAccount);
-        atm.enterPin(9999);
-        // Attempt to withdraw $1,000.00 (ATM only has $450 left)
-        atm.withdraw(100000);
+        // Thread 2: Simulating a simultaneous mobile app withdrawal on the same account
+        Thread mobileAppThread = new Thread(() -> {
+            System.out.println("[Mobile Thread] Attempting digital transfer...");
+            aliceAccount.withdraw(500); // Attempt to withdraw $500 directly
+        });
+
+        terminalThread.start();
+        mobileAppThread.start();
     }
 }
